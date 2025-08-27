@@ -1,0 +1,80 @@
+---
+- name: setting up jenkins
+  hosts: all
+  become: yes
+
+  pre_tasks:
+
+    - name: "apt: update cache"
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+
+    - name: "yum: update cache"
+      yum:
+        update_cache: yes
+      when: ansible_os_family == "RedHat"
+
+  tasks:
+
+    - name: "ubuntu: getting gpg keys"
+      get_url:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+        dest: /etc/apt/keyrings/jenkins-keyring.asc 
+      when: ansible_os_family == "Debian"
+        
+    - name: "centos: creating directory"
+      file:
+        path: /etc/yum.repos.d
+        state: directory
+      when: ansible_os_family == "RedHat"
+
+    - name: "centos: getting gpg keys"
+      get_url:
+        url: https://pkg.jenkins.io/redhat-stable/jenkins.repo
+        dest: /etc/yum.repos.d/jenkins.repo
+      when: ansible_os_family == "RedHat"
+
+    - name: "centos: importing key"
+      rpm_key:
+        key: https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: "yum: upgrade"
+      command: yum upgrade
+      when: ansible_os_family == "RedHat"
+
+    - name: adding reposotory on ubuntu
+      apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/"
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: "apt: install jenkins and java"
+      apt:
+        update_cache: yes
+        name: "{{ item }}"
+        state: present
+      loop:
+        - jenkins
+        - fontconfig
+        - openjdk-21-jre
+      when: ansible_os_family == "Debian"
+
+    - name: "yum: install jenkins and java"
+      yum:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - java-21-openjdk
+        - fontconfig
+        - jenkins
+      when: ansible_os_family == "RedHat"
+      
+    - name: start and enable jenkins service
+      systemd:
+        name: jenkins
+        state: started
+        enabled: yes
