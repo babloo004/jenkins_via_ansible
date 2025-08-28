@@ -6,3 +6,6 @@
 
 ## remove jenkins (not java)
 - ansible-playbook -i inventory.yaml remove.yaml
+
+## setup jenkins directpry ifor agent setup
+- ansible-playbook -i inventory.yaml agent.yaml
