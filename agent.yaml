@@ -1,0 +1,23 @@
+---
+- name: setup jenkins directory
+  hosts: agents
+  become: yes
+  tasks:
+    - name: create jenkins group
+      group:
+        name: jenkins
+        state: present
+
+    - name: create jenkins user
+      user:
+        name: jenkins
+        group: jenkins
+        state: present
+
+    - name: create directory
+      file:
+        path: /var/lib/jenkins
+        state: directory
+        owner: jenkins
+        group: jenkins
+        mode: '755'
