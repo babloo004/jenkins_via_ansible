@@ -13,6 +13,11 @@ all:
       ansible_user: avi04
       ansible_ssh_private_key_file: /keys/ubuntu_key.pem
 
+    ub03:
+      ansible_host: 20.6.130.28
+      ansible_user: ubuntu
+      ansible_ssh_private_key_file: /keys/ubuntu_key.pem
+
     cen01:
       ansible_host: 20.2.11.69
       ansible_user: avi04
@@ -22,6 +27,7 @@ ubuntu:
   hosts:
     ub01:
     ub02:
+    ub03:
 
 centos:
   hosts:
@@ -30,4 +36,11 @@ centos:
 eastasia:
   hosts:
     ub01:
+    cen01:
+    ub03:
+
+agents:
+  hosts:
+    ub02:
+    ub03:
     cen01:

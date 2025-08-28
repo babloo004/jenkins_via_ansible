@@ -1,0 +1,42 @@
+---
+- name: Remove jenkins
+  hosts: agents
+  become: yes
+  gather_facts: yes
+
+  tasks:
+
+    - name: stop jenkins
+      systemd:
+        name: jenkins
+        state: stopped
+      ignore_errors: yes
+
+    - name: "ubuntu: remove jenkins"
+      apt:
+        name: jenkins
+        state: absent
+        purge: yes
+      when: ansible_os_family == "Debian"
+
+    - name: "centos: remove jenkins"
+      yum:
+        name: jenkins
+        state: absent
+      when: ansible_os_family == "RedHat"
+      
+    - name: remove files
+      file:
+        path: /var/lib/jenkins
+        state: absent
+
+    - name: rempove jenkins user
+      user:
+        name: jenkins
+        state: absent
+        remove: yes
+
+    - name: remove jenkins group
+      group:
+        name: jenkins
+        state: absent
