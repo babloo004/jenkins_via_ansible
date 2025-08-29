@@ -10,5 +10,5 @@
 ## setup jenkins directpry ifor agent setup
 - ansible-playbook -i inventory.yaml playbooks/jenkins/agent.yaml
 
-## setup nexus
+## setup nexus(RedHat)
 - ansible-playbook -i inventory.yaml playbooks/nexus/nexus.yaml
