@@ -1,0 +1,102 @@
+---
+- name: setup nexus on centos
+  hosts: cen02
+  become: yes
+  vars_files:
+    - ../../vars/nexus_vars.yaml
+  tasks:
+
+    - name: importing corretto key
+      rpm_key:
+        key: https://yum.corretto.aws/corretto.key
+        state: present
+
+    - name: adding repo
+      get_url:
+        url: https://yum.corretto.aws/corretto.repo
+        dest: /etc/yum.repos.d/corretto.repo
+
+    - name: install java-17 
+      yum:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - java-17-amazon-corretto-devel
+        - wget
+
+    - name: creating directory
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+      loop:
+        - "{{ nexus_install_dir }}"
+        - "{{ nexus_tmp_dir }}"
+
+    - name: downloading nexus tarball
+      get_url:
+        url: "{{ nexus_download_url }}"
+        dest: "{{ nexus_tmp_dir }}/nexus.tar.gz"
+        timeout: 60
+
+    - name: extacting tar ball
+      unarchive:
+        src: "{{ nexus_tmp_dir }}/nexus.tar.gz"
+        dest: "{{ nexus_install_dir }}"
+        remote_src: yes
+        creates: "{{ nexus_home }}"
+
+    - name: create nexus group
+      group:
+        name: nexus
+        state: present
+
+    - name: create nexus user
+      user:
+        name: nexus
+        group: nexus
+        state: present
+
+    - name: changing ownership
+      file:
+        path: /opt/nexus
+        state: directory
+        recurse: yes
+        owner: nexus
+        group: nexus
+
+    - name: Configure systemd service for nexus
+      copy:
+        dest: /etc/systemd/system/nexus.service
+        content: |
+          [Unit]
+          Description=Nexus Repository Manager
+          After=network.target
+
+          [Service]
+          Type=forking
+          LimitNOFILE=65536
+          User={{ nexus_user }}
+          Group={{ nexus_group }}
+          ExecStart={{ nexus_home }}/bin/nexus start
+          ExecStop={{ nexus_home }}/bin/nexus stop
+          Restart=on-abort
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Configure Nexus to run as nexus user
+      lineinfile:
+        path: "/opt/nexus/{{ nexus_dir }}/bin/nexus.rc"
+        line: 'run_as_user="nexus"'
+        create: yes
+    
+    - name: restart nexus
+      systemd:
+        name: nexus
+        daemon_reload: yes
+        enabled: yes
+        state: restarted
+
+

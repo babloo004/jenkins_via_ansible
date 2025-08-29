@@ -1,0 +1,9 @@
+---
+nexus_version: "3.78.0-14"
+nexus_download_url: "https://download.sonatype.com/nexus/3/nexus-unix-x86-64-{{ nexus_version }}.tar.gz"
+nexus_install_dir: "/opt/nexus"
+nexus_tmp_dir: "/tmp/nexus"
+nexus_user: "nexus"
+nexus_group: "nexus"
+nexus_home: "/opt/nexus/nexus-{{ nexus_version }}"
+nexus_dir: "nexus-{{ nexus_version }}"
