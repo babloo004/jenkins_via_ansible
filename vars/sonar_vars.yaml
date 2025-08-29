@@ -1,0 +1,9 @@
+---
+sonar_version: "9.9.8.100196"
+sonar_user: "sonar"
+sonar_group: "sonar"
+sonar_db: "sonarqube"
+sonar_db_user: "sonar"
+sonar_db_password: "1234"
+sonar_web_port: 9000
+domain_name: "74.225.173.150"
