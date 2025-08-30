@@ -1,0 +1,2 @@
+---
+- import_playbook: ./playbooks/jenkins_setup/setup.yaml

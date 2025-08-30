@@ -1,0 +1,58 @@
+---
+- name: setup java 17 for sonar qube
+  hosts: ub02
+  become: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  vars_files:
+    - ../../vars/sonar_vars.yaml
+
+  pre_tasks:
+
+    - name: installing essentials
+      apt:
+        name: acl
+        state: present
+        update_cache: yes
+
+  tasks:
+
+    - name: setting backup for sysctl file
+      copy:
+        src: /etc/sysctl.conf
+        dest: /root/sysctl.conf_backup
+        remote_src: yes
+
+    - name: writing sysctl config file
+      blockinfile:
+        path: /etc/sysctl.conf
+        block: |
+         vm.max_map_count=262144
+         fs.file-max=65536
+
+    - name: setting backup for limits.conf
+      copy:
+        src: /etc/security/limits.conf
+        dest: /root/sec_limit.conf_backup
+        remote_src: yes
+
+    - name: writing limits.conf file
+      copy:
+        dest: /etc/security/limits.conf
+        content: |
+          sonarqube   -   nofile   65536
+          sonarqube   -   nproc    409
+
+    - name: installing java and essentials
+      apt:
+        name: openjdk-17-jdk
+        state: present
+        update_cache: yes
+
+    - name: verify java version
+      command: java -version
+      register: java_version
+
+    - debug:
+        var: java_version.stderr_lines
+

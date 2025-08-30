@@ -1,0 +1,113 @@
+---
+- name: setup sonar qube
+  hosts: ub02
+  become: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  vars_files:
+    - ../../vars/sonar_vars.yaml
+  tasks:
+
+    - name: sonarqube directory
+      file:
+        path: /opt/sonarqube
+        state: directory
+
+    - name: getting sonar binaries
+      get_url:
+        url: https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-9.9.8.100196.zip
+        dest: /tmp/sonarqube.zip
+
+    - name: installing essentials
+      apt:
+        name: unzip
+        state: present
+
+    - name: unarchive zip files
+      unarchive:
+        src: /tmp/sonarqube.zip
+        dest: /opt/
+        remote_src: yes
+
+    - name: copying files
+      copy:
+        src: "/opt/sonarqube-{{ sonar_version }}/"
+        dest: /opt/sonarqube/
+        remote_src: yes
+
+    - name: removing trash files
+      file:
+        path: "/opt/sonarqube-{{ sonar_version }}"
+        state: absent
+
+    - name: create sonar group
+      group:
+        name: "{{ sonar_group }}"
+        state: present
+
+    - name: create sonar user
+      user:
+        name: "{{ sonar_user }}"
+        group: "{{ sonar_group }}"
+        home: /opt/sonarqube
+        shell: /bin/bash
+        system: yes
+
+    - name: changing ownership
+      file:
+        path: /opt/sonarqube
+        owner: "{{ sonar_user }}"
+        group: "{{ sonar_group }}"
+        recurse: yes
+
+    - name: backup sonar properties file
+      copy:
+        src: /opt/sonarqube/conf/sonar.properties
+        dest: /root/sonar.properties_backup
+        remote_src: yes
+
+    - name: configure sonar properties
+      copy:
+        dest: /opt/sonarqube/conf/sonar.properties
+        content: |
+          sonar.jdbc.username={{ sonar_db_user }}
+          sonar.jdbc.password={{ sonar_db_password }}
+          sonar.jdbc.url=jdbc:postgresql://localhost/{{ sonar_db }}
+          sonar.web.host=0.0.0.0
+          sonar.web.port={{ sonar_web_port }}
+          sonar.web.javaAdditionalOpts=-server
+          sonar.search.javaOpts=-Xmx512m -Xms512m -XX:+HeapDumpOnOutOfMemoryError
+          sonar.log.level=INFO
+          sonar.path.logs=logs
+
+    - name: configure sonar services
+      copy:
+        dest: /etc/systemd/system/sonarqube.service
+        content: |
+          [Unit]
+          Description=SonarQube service
+          After=syslog.target network.target
+
+          [Service]
+          Type=forking
+
+          ExecStart=/opt/sonarqube/bin/linux-x86-64/sonar.sh start
+          ExecStop=/opt/sonarqube/bin/linux-x86-64/sonar.sh stop
+
+          User={{ sonar_user }}
+          Group={{ sonar_group }}
+          Restart=always
+
+          LimitNOFILE=65536
+          LimitNPROC=4096
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: reload systemd and enable sonarqube
+      systemd:
+        daemon_reload: yes
+        name: sonarqube
+        enabled: yes
+        state: started
+

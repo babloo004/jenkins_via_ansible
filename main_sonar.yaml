@@ -1,0 +1,6 @@
+---
+- import_playbook: playbooks/sonarqube/javasetup.yaml
+- import_playbook: playbooks/sonarqube/postgresql.yaml
+- import_playbook: playbooks/sonarqube/sonar.yaml
+- import_playbook: playbooks/sonarqube/nginx.yaml  
+

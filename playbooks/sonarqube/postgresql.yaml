@@ -1,0 +1,74 @@
+- name: setting postgresql for sonarqube
+  hosts: ub02
+  become: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+
+  vars_files:
+    - ../../vars/sonar_vars.yaml
+
+  tasks:
+
+    - name: installing essentials for postgresql
+      apt:
+        name: python3-psycopg2
+        state: present
+
+    - name: getting key
+      apt_key:
+        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        state: present
+
+    - name: adding repository
+      apt_repository:
+        repo: "deb http://apt.postgresql.org/pub/repos/apt/ {{ ansible_distribution_release }}-pgdg main"
+        state: present
+
+    - name: install postgresql
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - postgresql
+        - postgresql-contrib
+
+    - name: start and enable postgresql
+      service:
+        name: postgresql
+        state: started
+        enabled: yes
+
+    - name: set postgres password
+      command: "echo 'postgres:admin123' | chpasswd"
+
+    - name: create sonar db user
+      become: yes
+      become_user: postgres
+      postgresql_user:
+        name: "{{ sonar_db_user }}"
+        password: "{{ sonar_db_password }}"
+        encrypted: yes
+        state: present
+
+    - name: create sonarqube database
+      become_user: postgres
+      postgresql_db:
+        name: "{{ sonar_db }}"
+        owner: "{{ sonar_db_user }}"
+        state: present
+
+    - name: Grant all privileges on sonarqube DB
+      become: yes
+      become_user: postgres
+      postgresql_privs:
+        db: "{{ sonar_db }}"
+        roles: sonar
+        type: database
+        privs: ALL
+        state: present
+
+    - name: restart postgresql
+      service:
+        name: postgresql
+        state: restarted
+
