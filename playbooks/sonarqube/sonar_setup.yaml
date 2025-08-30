@@ -79,23 +79,17 @@
     - name: set postgres password
       command: "echo 'postgres:admin123' | chpasswd"
 
-        #- name: create sonar db user
-        #postgresql_user:
-        #name: "{{ sonar_db_user }}"
-        #password: "{{ sonar_db_password }}"
-        #encrypted: yes
-        #state: present
-        #login_host: "127.0.0.1"
-        #login_user: "postgres"
-        #login_password: "1234" 
-
-    - name: create sonar db user via sql
+    - name: create sonar db user
       become: yes
-      shell: |
-        sudo -u postgres psql -c "CREATE USER {{ sonar_db_user }} WITH PASSWORD '{{ sonar_db_password }}';"
-    
+      become_user: postgres
+      postgresql_user:
+        name: "{{ sonar_db_user }}"
+        password: "{{ sonar_db_password }}"
+        encrypted: yes
+        state: present
+
     - name: create sonarqube database
-      #become_user: postgres
+      become_user: postgres
       postgresql_db:
         name: "{{ sonar_db }}"
         owner: "{{ sonar_db_user }}"
@@ -137,10 +131,16 @@
         dest: /opt/
         remote_src: yes
 
-    - name: renaming sonarqube directory
-      command: mv /opt/sonarqube-{{ sonar_version }} /opt/sonarqube
-      args:
-        create: /opt/sonarqube/bin
+    - name: copying files
+      copy:
+        src: "/opt/sonarqube-{{ sonar_version }}/"
+        dest: /opt/sonarqube/
+        remote_src: yes
+
+    - name: removing trash files
+      file:
+        path: "/opt/sonarqube-{{ sonar_version }}"
+        state: absent
 
     - name: create sonar group
       group:
@@ -166,7 +166,7 @@
       copy:
         src: /opt/sonarqube/conf/sonar.properties
         dest: /root/sonar.properties_backup
-        remote_Src: yes
+        remote_src: yes
 
     - name: configure sonar properties
       copy:
